@@ -32,6 +32,10 @@ local function get_gui_event_definition()
         events = {
             onWindowClosed = Gui.onWindowClosed,
             onSwitchEnabled = Gui.onSwitchEnabled,
+            onToggleRequests = Gui.onToggleRequests,
+            onTogglePickups = Gui.onTogglePickups,
+            onToggleDeliveries = Gui.onToggleDeliveries,
+            onLogisticPointChanged = Gui.onLogisticPointChanged,
         },
         callback = Gui.guiUpdater,
     }
@@ -190,6 +194,33 @@ function Gui.getUi(gui)
                                 },
                             },
                             {
+                                type = 'drop-down',
+                                name = 'logistic-point',
+                                handler = { [defines.events.on_gui_selection_state_changed] = gui_events.onLogisticPointChanged },
+                                items = {},
+                            },
+                            {
+                                type = 'checkbox',
+                                caption = { const:locale('report-pickups') },
+                                name = 'report-pickups',
+                                handler = { [defines.events.on_gui_checked_state_changed] = gui_events.onTogglePickups },
+                                state = false,
+                            },
+                            {
+                                type = 'checkbox',
+                                caption = { const:locale('report-deliveries') },
+                                name = 'report-deliveries',
+                                handler = { [defines.events.on_gui_checked_state_changed] = gui_events.onToggleDeliveries },
+                                state = false,
+                            },
+                            {
+                                type = 'checkbox',
+                                caption = { const:locale('report-requests') },
+                                name = 'report-requests',
+                                handler = { [defines.events.on_gui_checked_state_changed] = gui_events.onToggleRequests },
+                                state = false,
+                            },
+                            {
                                 type = 'scroll-pane',
                                 style = 'deep_slots_scroll_pane',
                                 direction = 'vertical',
@@ -277,15 +308,68 @@ function Gui.onSwitchEnabled(event, gui)
     sensor_data.config.enabled = on_off_values[event.element.switch_state]
 end
 
+---@param event EventData.on_gui_checked_state_changed
+---@param gui framework.gui
+function Gui.onToggleRequests(event, gui)
+    local sensor_data = This.SensorController:entity(gui.entity_id)
+    if not sensor_data then return end
+
+    sensor_data.config.selected.request = event.element.state
+end
+
+---@param event EventData.on_gui_checked_state_changed
+---@param gui framework.gui
+function Gui.onTogglePickups(event, gui)
+    local sensor_data = This.SensorController:entity(gui.entity_id)
+    if not sensor_data then return end
+
+    sensor_data.config.selected.pickup = event.element.state
+end
+
+---@param event EventData.on_gui_checked_state_changed
+---@param gui framework.gui
+function Gui.onToggleDeliveries(event, gui)
+    local sensor_data = This.SensorController:entity(gui.entity_id)
+    if not sensor_data then return end
+
+    sensor_data.config.selected.delivery = event.element.state
+end
+
+---@param event EventData.on_gui_selection_state_changed
+---@param gui framework.gui
+function Gui.onLogisticPointChanged(event, gui)
+    local sensor_data = This.SensorController:entity(gui.entity_id)
+    if not sensor_data then return end
+
+    ---@type defines.logistic_member_index?
+    local new_index
+    if event.element.selected_index > 0 then
+        local supported = sensor_data.state.supported[event.element.selected_index]
+        if supported then new_index = supported.logistic_member_index end
+    end
+
+    sensor_data.config.logistic_member_index = new_index
+end
+
 ----------------------------------------------------------------------------------------------------
 -- GUI state updater
 ----------------------------------------------------------------------------------------------------
+
+---@param sensor_data logistics_sensor.Data
+---@return LocalisedString[]
+local function localize_items(sensor_data)
+    local items = {}
+    for key, value in pairs(sensor_data.state.logistics_points) do
+        items[key] = const.logistics_point[value]
+    end
+    return items
+end
 
 ---@param gui framework.gui
 ---@param sensor_data logistics_sensor.Data
 local function update_config_gui_state(gui, sensor_data)
     local sensor_status = (not sensor_data.config.enabled) and defines.entity_status.disabled -- if not enabled, status is disabled
-        or sensor_data.config.status                                                          -- if enabled, the registered state takes precedence if present
+        or sensor_data.state.status                                                           -- if enabled, the registered state takes precedence if present
         or defines.entity_status.working                                                      -- otherwise, it is working
 
     local entity_lamp = gui:find_element('entity-lamp')
@@ -293,6 +377,25 @@ local function update_config_gui_state(gui, sensor_data)
 
     local entity_status = gui:find_element('entity-status')
     entity_status.caption = { tools.STATUS_NAMES[sensor_status] }
+
+    local supported, idx = Sensor.find_supported(sensor_data)
+
+    local logistic_point = assert(gui:find_element('logistic-point'))
+    logistic_point.enabled = #sensor_data.state.logistics_points > 0
+    logistic_point.items = localize_items(sensor_data)
+    logistic_point.selected_index = idx
+
+    local report_pickups = gui:find_element('report-pickups')
+    report_pickups.enabled = supported.pickup
+    report_pickups.state = supported.pickup and sensor_data.config.selected.pickup or false
+
+    local report_deliveries = gui:find_element('report-deliveries')
+    report_deliveries.enabled = supported.delivery
+    report_deliveries.state = supported.delivery and sensor_data.config.selected.delivery or false
+
+    local report_requests = gui:find_element('report-requests')
+    report_requests.enabled = supported.request
+    report_requests.state = supported.request and sensor_data.config.selected.request or false
 
     local status = gui:find_element('status')
     if sensor_data.config.enabled then
@@ -345,9 +448,11 @@ function Gui.guiUpdater(gui)
     ---@type logistics_sensor.GuiContext
     local context = gui.context
 
-    if not (context.last_config and table.compare(context.last_config, sensor_data.config)) then
+    if not (context.last_config and table.compare(context.last_config, sensor_data.config))
+        or not (context.last_state and table.compare(context.last_state, sensor_data.state)) then
         update_config_gui_state(gui, sensor_data)
-        context.last_config = tools.copy(sensor_data.config)
+        context.last_config = util.copy(sensor_data.config)
+        context.last_state = util.copy(sensor_data.state)
     end
 
     -- always update wire state and preview
@@ -386,8 +491,10 @@ function Gui.onGuiOpened(event)
 
     ---@class logistics_sensor.GuiContext
     ---@field last_config logistics_sensor.Config?
+    ---@field last_state logistics_sensor.State?
     local gui_state = {
         last_config = nil,
+        last_state = nil,
     }
 
     local gui = Framework.gui_manager:create_gui {

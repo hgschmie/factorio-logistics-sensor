@@ -73,16 +73,60 @@ end
 -- Base name
 Constants.logistics_sensor_name = Constants:with_prefix(Constants.name)
 
-Constants.signal_names = {
+--------------------------------------------------------------------------------
+-- enabled / disabled gui fields
+--------------------------------------------------------------------------------
+
+---@type table<defines.logistic_mode, logistics_sensor.LogisticTypes>
+Constants.supported_logistic_modes = {
+    [defines.logistic_mode.none] = {
+        request = false,
+        pickup = false,
+        delivery = false,
+    },
+    [defines.logistic_mode.active_provider] = {
+        request = false,
+        pickup = true,
+        delivery = false,
+    },
+    [defines.logistic_mode.storage] = {
+        request = false,
+        pickup = true,
+        delivery = true,
+    },
+    [defines.logistic_mode.requester] = {
+        request = true,
+        pickup = false,
+        delivery = true,
+    },
+    [defines.logistic_mode.passive_provider] = {
+        request = false,
+        pickup = true,
+        delivery = false,
+    },
+    [defines.logistic_mode.buffer] = {
+        request = true,
+        pickup = true,
+        delivery = true,
+    },
 }
 
-Constants.signals = {}
-for name, signal in pairs(Constants.signal_names) do
-    Constants.signals[name] = { type = 'virtual', name = signal, quality = 'normal' }
+Constants.logistics_point = {
+    main = { Constants:locale('logistics-main') },
+    trash = { Constants:locale('logistics-trash') },
+    provider = { Constants:locale('logistics-provider') },
+    requester = { Constants:locale('logistics-requester') },
+    vehicle_logistics = { Constants:locale('logistics-vehicle-logistics') },
+    robot_requests = { Constants:locale('logistics-robot-requests') },
+    rocket_inventory = { Constants:locale('logistics-rocket-inventory') },
+    request_for_construction = { Constants:locale('logistics-request-for-construction') },
+    space_platform_deliveries = {Constants:locale('logistics-space-platform-deliveries')},
+}
+
+Constants.logistics_point_names = {}
+for key, _ in pairs(Constants.logistics_point) do
+    Constants.logistics_point_names[key] = key
 end
-
-Constants.logistics_status_signals = {
-}
 
 --------------------------------------------------------------------------------
 -- settings

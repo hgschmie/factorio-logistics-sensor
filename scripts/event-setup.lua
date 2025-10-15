@@ -22,7 +22,7 @@ local function onEntityCreated(event)
 
     assert(entity)
 
-    if not (entity and entity.valid)then return end
+    if not (entity and entity.valid) then return end
 
     -- register entity for destruction
     script.register_on_object_destroyed(entity)
@@ -64,7 +64,7 @@ end
 
 local function onEntityMoved(event)
     local entity = event and event.entity
-    if not (entity and entity.valid)then return end
+    if not (entity and entity.valid) then return end
     This.SensorController:move(entity.unit_number)
 end
 
@@ -129,29 +129,18 @@ local function onTick()
     if table_size(entities) == 0 then
         index = nil
     else
-        local destroy_list = {}
         repeat
             index, entity = next(entities, index)
             if entity and entity.sensor_entity and entity.sensor_entity.valid then
                 if Sensor.tick(entity) then
                     process_count = process_count - 1
                 end
-            else
-                table.insert(destroy_list, index)
+            elseif index then
+                This.SensorController:destroy(index)
             end
         until process_count == 0 or not index
-
-        if table_size(destroy_list) then
-            for _, unit_id in pairs(destroy_list) do
-                This.SensorController:destroy(unit_id)
-
-                -- if the last index was destroyed, reset the scan loop index
-                if unit_id == index then
-                    index = nil
-                end
-            end
-        end
     end
+
     storage.last_tick_entity = index
 end
 

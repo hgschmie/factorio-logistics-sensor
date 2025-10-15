@@ -13,18 +13,31 @@
 
 ---@class logistics_sensor.DataController
 ---@field interval scan_frequency
----@field validate (fun(entity: logistics_sensor.Data): boolean)?
----@field contribute (fun(is_data: logistics_sensor.Data, sink: fun(filter: LogisticFilter)))?
----@field signals table<string, integer>?
+---@field validate (fun(entity: LuaEntity): boolean)?
+---@field contribute (fun(data: logistics_sensor.Data, sink: fun(filter: LogisticFilter)))?
+---@field logistics_points table<defines.logistic_member_index, string>
+
+---@class logistics_sensor.LogisticTypes
+---@field logistic_member_index defines.logistic_member_index?
+---@field request boolean
+---@field pickup boolean
+---@field delivery boolean
 
 ---@class logistics_sensor.Config
 ---@field enabled boolean
----@field status defines.entity_status
 ---@field scan_entity_id integer?
+---@field logistic_member_index defines.logistic_member_index?
+---@field selected logistics_sensor.LogisticTypes
+
+---@class logistics_sensor.State
+---@field status defines.entity_status
+---@field logistics_points string[]
+---@field supported logistics_sensor.LogisticTypes[]
 
 ---@class logistics_sensor.Data
 ---@field sensor_entity LuaEntity
 ---@field config logistics_sensor.Config
+---@field state logistics_sensor.State
 ---@field scan_area BoundingBox?
 ---@field scan_entity LuaEntity?
 ---@field scan_interval integer?

@@ -51,12 +51,9 @@ end
 ---@param entity_id integer The unit_number of the primary
 ---@param sensor_data logistics_sensor.Data?
 function LogisticsSensorController:setEntity(entity_id, sensor_data)
-    assert((sensor_data ~= nil and storage.sensor_data.sensors[entity_id] == nil)
-        or (sensor_data == nil and storage.sensor_data.sensors[entity_id] ~= nil))
+    assert((sensor_data ~= nil and storage.sensor_data.sensors[entity_id] == nil) or sensor_data == nil)
 
-    if (sensor_data) then
-        assert(Sensor.validate(sensor_data, entity_id))
-    end
+    if (sensor_data) then assert(Sensor.validate(sensor_data, entity_id)) end
 
     storage.sensor_data.sensors[entity_id] = sensor_data
     storage.sensor_data.count = storage.sensor_data.count + ((sensor_data and 1) or -1)
@@ -89,6 +86,8 @@ end
 
 --@param unit_number integer
 function LogisticsSensorController:destroy(unit_number)
+    assert(unit_number)
+
     local sensor_data = self:entity(unit_number)
     if not sensor_data then return end
 
@@ -115,7 +114,7 @@ end
 ---@param entity LuaEntity
 ---@return table<string, any>?
 function LogisticsSensorController.serialize_config(entity)
-    if not (entity and entity.valid)then return end
+    if not (entity and entity.valid) then return end
 
     local sensor_data = This.SensorController:entity(entity.unit_number)
     if not sensor_data then return end

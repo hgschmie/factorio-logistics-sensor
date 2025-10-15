@@ -31,8 +31,8 @@ local LogisticsSensor = {
 ---@return logistics_sensor.DataController?
 local function locate_scan_controller(entity)
     if not (entity and entity.valid) then return nil end
-
     assert(entity)
+
     local scan_controller = sensor_entities.supported_entities[entity.type] and
         (sensor_entities.supported_entities[entity.type][entity.name] or sensor_entities.supported_entities[entity.type]['*'])
 
@@ -49,11 +49,49 @@ end
 --------------------------------------------------------------------------------
 
 ---@param sensor_data logistics_sensor.Data
+---@param scan_controller logistics_sensor.DataController
+function LogisticsSensor.update_supported(sensor_data, scan_controller)
+    if not (sensor_data.scan_entity and sensor_data.scan_entity.valid) then return end
+
+    -- turn everything off first
+    sensor_data.state.supported = {}
+    sensor_data.state.logistics_points = {}
+
+    -- update the available logistics points
+    local logistics_points = sensor_data.scan_entity.get_logistic_point()
+    local new_logistic_member_index = nil
+    for _, logistics_point in pairs(logistics_points) do
+        local logistic_member_index = logistics_point.logistic_member_index
+
+        if scan_controller.logistics_points[logistic_member_index] then
+            -- select the very first index as default
+            if not new_logistic_member_index then
+                new_logistic_member_index = logistic_member_index
+            end
+            -- if the currently selected index is supported, then use that as default
+            if logistic_member_index == sensor_data.config.logistic_member_index then
+                new_logistic_member_index = logistic_member_index
+            end
+
+            table.insert(sensor_data.state.logistics_points, scan_controller.logistics_points[logistic_member_index])
+
+            local supported = util.copy(const.supported_logistic_modes[logistics_point.mode])
+            supported.logistic_member_index = logistic_member_index
+            table.insert(sensor_data.state.supported, supported)
+        end
+    end
+
+    sensor_data.config.logistic_member_index = new_logistic_member_index
+end
+
+---@param sensor_data logistics_sensor.Data
 ---@param config logistics_sensor.Config?
 function LogisticsSensor.reconfigure(sensor_data, config)
     if not config then return end
 
     sensor_data.config.enabled = config.enabled
+    sensor_data.config.selected = util.copy(config.selected)
+    sensor_data.config.logistic_member_index = config.logistic_member_index
 end
 
 ----------------------------------------------------------------------------------------------------
@@ -78,13 +116,20 @@ function LogisticsSensor.new(sensor_entity, config)
         sensor_entity = sensor_entity,
         config = {
             enabled = true,
+            selected = {
+                request = false,
+                pickup = false,
+                delivery = false,
+            },
+        },
+        state = {
             status = sensor_entity.status,
+            supported = {},
+            logistics_points = {},
         },
     }
 
-    if config then
-        LogisticsSensor.reconfigure(data, config)
-    end
+    if config then LogisticsSensor.reconfigure(data, config) end
 
     return data
 end
@@ -171,6 +216,27 @@ end
 -- load/clear
 ----------------------------------------------------------------------------------------------------
 
+
+---@type logistics_sensor.LogisticTypes
+local NOTHING_SUPPORTED = {
+    request = false,
+    pickup = false,
+    delivery = false,
+}
+
+---@param sensor_data  logistics_sensor.Data
+---@return logistics_sensor.LogisticTypes supported
+---@return integer idx
+function LogisticsSensor.find_supported(sensor_data)
+    if sensor_data.config.logistic_member_index then
+        for idx, supported in pairs(sensor_data.state.supported) do
+            if supported.logistic_member_index == sensor_data.config.logistic_member_index then return supported, idx end
+        end
+    end
+
+    return NOTHING_SUPPORTED, 0
+end
+
 ---@param sensor_data logistics_sensor.Data
 ---@return LuaLogisticSection
 function LogisticsSensor.get_section(sensor_data)
@@ -207,9 +273,6 @@ function LogisticsSensor.load(sensor_data, force)
     ---@type LogisticFilter[]
     local filters = {}
 
-    ---@type logistics_sensor.Status
-    local totalStatus = {}
-
     ---@type fun(filter: LogisticFilter)
     local sink = function(filter)
         local signal = filter.value --[[@as SignalFilter]]
@@ -223,9 +286,36 @@ function LogisticsSensor.load(sensor_data, force)
         end
     end
 
-    -- TODO HERE
+    if sensor_data.config.logistic_member_index then
+        local logistics_point = scan_entity.get_logistic_point(sensor_data.config.logistic_member_index)
+        if logistics_point then
+            local supported = LogisticsSensor.find_supported(sensor_data)
 
-    -- add custom items
+            if supported.pickup and sensor_data.config.selected.pickup then
+                for _, item in pairs(logistics_point.targeted_items_pickup) do
+                    sink { value = { name = item.name, type = 'item', quality = item.quality or 'normal' }, min = item.count }
+                end
+            end
+
+            if supported.delivery and sensor_data.config.selected.delivery then
+                for _, item in pairs(logistics_point.targeted_items_deliver) do
+                    sink { value = { name = item.name, type = 'item', quality = item.quality or 'normal' }, min = item.count }
+                end
+            end
+
+            if supported.request and sensor_data.config.selected.request then
+                for _, request_section in pairs(logistics_point.sections) do
+                    if request_section.active then
+                        for _, filter in pairs(request_section.filters) do
+                            sink { value = { name = filter.value.name, type = 'item', quality = filter.value.quality or 'normal' }, min = filter.min }
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    -- add custom signals
     if scan_controller.contribute then
         scan_controller.contribute(sensor_data, sink)
     end
@@ -256,15 +346,19 @@ function LogisticsSensor.connect(sensor_data, entity)
     if not (entity and entity.valid) then return false end
     if sensor_entities.blacklist[entity.name] then return false end
 
-    local scan_controller = locate_scan_controller(entity)
-    if not scan_controller then return false end
-
     -- reconnect to the same entity
     if sensor_data.scan_entity and sensor_data.scan_entity.valid and sensor_data.scan_entity.unit_number == entity.unit_number then return true end
+
+    local scan_controller = locate_scan_controller(entity)
+    if not scan_controller then return false end
 
     sensor_data.scan_entity = entity
     sensor_data.scan_interval = scan_controller.interval or scan_frequency.stationary -- unset scan interval -> stationary
     sensor_data.config.scan_entity_id = entity.unit_number
+
+    -- update the list of supported logistics points for the entity.
+    -- Not all entities support all possible logistics points (e.g. landing pod outside space age)
+    LogisticsSensor.update_supported(sensor_data, scan_controller)
 
     LogisticsSensor.load(sensor_data, true)
 
@@ -291,7 +385,9 @@ function LogisticsSensor.disconnect(sensor_data)
     sensor_data.load_time = nil
 
     sensor_data.config.scan_entity_id = nil
-    sensor_data.config.status = nil
+    sensor_data.state.status = nil
+    sensor_data.state.logistics_points = {}
+    sensor_data.state.supported = {}
 
     local section = LogisticsSensor.get_section(sensor_data)
     section.filters = {}
@@ -316,10 +412,10 @@ end
 function LogisticsSensor.tick(sensor_data)
     if not (sensor_data.sensor_entity and sensor_data.sensor_entity.valid) then
         sensor_data.config.enabled = false
-        sensor_data.config.status = defines.entity_status.marked_for_deconstruction
+        sensor_data.state.status = defines.entity_status.marked_for_deconstruction
         return false
     else
-        sensor_data.config.status = sensor_data.sensor_entity.status
+        sensor_data.state.status = sensor_data.sensor_entity.status
 
         local scanned = LogisticsSensor.scan(sensor_data)
         local loaded = LogisticsSensor.load(sensor_data)

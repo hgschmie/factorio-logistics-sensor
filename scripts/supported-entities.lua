@@ -12,13 +12,87 @@ local const = require('lib.constants')
 -- helper functions
 ------------------------------------------------------------------------
 
+---@param entity LuaEntity
+---@return boolean
+local function is_stopped(entity)
+    if not (entity and entity.valid) then return false end
+    return entity.speed == 0 -- entity must be standing still
+end
+
 ------------------------------------------------------------------------
 -- Defined entity types
 ------------------------------------------------------------------------
 
 -- generic container
+---@type logistics_sensor.DataController
 local container_type = {
     interval = scan_frequency.stationary,
+    validate = function(entity)
+        return entity.prototype.logistic_mode and entity.prototype.logistic_mode ~= 'none' or false
+    end,
+    logistics_points = {
+        [defines.logistic_member_index.logistic_container] = const.logistics_point_names.main,
+        [defines.logistic_member_index.logistic_container_trash_provider] = const.logistics_point_names.trash,
+    }
+}
+
+---@type logistics_sensor.DataController
+local cargo_pad_type = {
+    interval = scan_frequency.stationary,
+    logistics_points = {
+        -- https://forums.factorio.com/viewtopic.php?t=131341
+        [defines.logistic_member_index.space_platform_hub_requester] = const.logistics_point_names.space_platform_deliveries,
+        [defines.logistic_member_index.space_platform_hub_provider] = const.logistics_point_names.main,
+        [defines.logistic_member_index.rocket_silo_trash_provider] = const.logistics_point_names.trash,
+    }
+}
+
+---@type logistics_sensor.DataController
+local roboport_type = {
+    interval = scan_frequency.stationary,
+    logistics_points = {
+        [defines.logistic_member_index.roboport_provider] = const.logistics_point_names.provider,
+        [defines.logistic_member_index.roboport_requester] = const.logistics_point_names.robot_requests,
+    }
+}
+
+---@type logistics_sensor.DataController
+local rocket_silo_type = {
+    interval = scan_frequency.stationary,
+    logistics_points = {
+        [defines.logistic_member_index.rocket_silo_provider] = const.logistics_point_names.rocket_inventory,
+        [defines.logistic_member_index.rocket_silo_requester] = const.logistics_point_names.main,
+        [defines.logistic_member_index.rocket_silo_trash_provider] = const.logistics_point_names.trash,
+    }
+}
+
+---@type logistics_sensor.DataController
+local space_platform_hub_type = {
+    interval = scan_frequency.stationary,
+    logistics_points = {
+        [defines.logistic_member_index.space_platform_hub_requester] = const.logistics_point_names.request_for_construction,
+        [defines.logistic_member_index.space_platform_hub_provider] = const.logistics_point_names.provider,
+    }
+}
+
+---@type logistics_sensor.DataController
+local car_type = {
+    interval = scan_frequency.mobile,
+    validate = is_stopped,
+    logistics_points = {
+        [defines.logistic_member_index.car_requester] = const.logistics_point_names.vehicle_logistics,
+        [defines.logistic_member_index.car_provider] = const.logistics_point_names.trash,
+    }
+}
+
+---@type logistics_sensor.DataController
+local spidertron_type = {
+    interval = scan_frequency.mobile,
+    validate = is_stopped,
+    logistics_points = {
+        [defines.logistic_member_index.spidertron_requester] = const.logistics_point_names.vehicle_logistics,
+        [defines.logistic_member_index.spidertron_provider] = const.logistics_point_names.trash,
+    }
 }
 
 ------------------------------------------------------------------------
@@ -27,6 +101,19 @@ local container_type = {
 local supported_entities = {
     -- container-ish
     ['logistic-container'] = util.copy(container_type),
+    ['infinity-container'] = util.copy(container_type),
+
+    ['cargo-landing-pad'] = util.copy(cargo_pad_type),
+
+    ['roboport'] = util.copy(roboport_type),
+
+    ['rocket-silo'] = util.copy(rocket_silo_type),
+
+    ['space-platform-hub'] = util.copy(space_platform_hub_type),
+
+    -- mobile units
+    car = util.copy(car_type),
+    ['spider-vehicle'] = util.copy(spidertron_type),
 }
 
 ------------------------------------------------------------------------
