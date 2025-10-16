@@ -12,6 +12,8 @@ local const = require('lib.constants')
 -- helper functions
 ------------------------------------------------------------------------
 
+local has_space_age = script.active_mods['space-age'] and true or false
+
 ---@param entity LuaEntity
 ---@return boolean
 local function is_stopped(entity)
@@ -58,6 +60,10 @@ local roboport_type = {
 
 ---@type logistics_sensor.DataController
 local rocket_silo_type = {
+    --- only works in space-age
+    validate = function()
+        return has_space_age
+    end,
     interval = scan_frequency.stationary,
     logistics_points = {
         [defines.logistic_member_index.rocket_silo_provider] = const.logistics_point_names.rocket_inventory,
@@ -105,7 +111,9 @@ local supported_entities = {
 
     ['cargo-landing-pad'] = util.copy(cargo_pad_type),
 
-    ['roboport'] = util.copy(roboport_type),
+    -- no idea what the provider logistic point in the robo port does
+    -- turn it off, there does not seem to be anything useful here
+    -- ['roboport'] = util.copy(roboport_type),
 
     ['rocket-silo'] = util.copy(rocket_silo_type),
 

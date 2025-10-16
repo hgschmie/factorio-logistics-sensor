@@ -15,6 +15,15 @@ local sensor_entities = require('scripts.supported-entities')
 
 ------------------------------------------------------------------------
 
+---@type logistics_sensor.LogisticTypes
+local NO_TYPE_SELECTED = {
+    request = false,
+    pickup = false,
+    delivery = false,
+}
+
+------------------------------------------------------------------------
+
 ---@class logistics_sensor.Sensor
 ---@field scan_offset number
 ---@field scan_range number
@@ -47,6 +56,14 @@ end
 --------------------------------------------------------------------------------
 -- configure
 --------------------------------------------------------------------------------
+
+---@param entity LuaEntity?
+---@return string?
+local function get_entity_key(entity)
+    if not (entity and entity.valid) then return nil end
+
+    return entity.type .. '__' .. entity.name
+end
 
 ---@param sensor_data logistics_sensor.Data
 ---@param scan_controller logistics_sensor.DataController
@@ -82,6 +99,8 @@ function LogisticsSensor.update_supported(sensor_data, scan_controller)
     end
 
     sensor_data.config.logistic_member_index = new_logistic_member_index
+    sensor_data.state.reset_on_connect = true
+    sensor_data.state.reconnect_key = get_entity_key(sensor_data.scan_entity)
 end
 
 ---@param sensor_data logistics_sensor.Data
@@ -124,6 +143,9 @@ function LogisticsSensor.new(sensor_entity, config)
         },
         state = {
             status = sensor_entity.status,
+            -- if a config was provided, do not reset state at next connect
+            -- this allows blueprints to work
+            reset_on_connect = not config,
             supported = {},
             logistics_points = {},
         },
@@ -217,13 +239,6 @@ end
 ----------------------------------------------------------------------------------------------------
 
 
----@type logistics_sensor.LogisticTypes
-local NOTHING_SUPPORTED = {
-    request = false,
-    pickup = false,
-    delivery = false,
-}
-
 ---@param sensor_data  logistics_sensor.Data
 ---@return logistics_sensor.LogisticTypes supported
 ---@return integer idx
@@ -234,7 +249,7 @@ function LogisticsSensor.find_supported(sensor_data)
         end
     end
 
-    return NOTHING_SUPPORTED, 0
+    return NO_TYPE_SELECTED, 0
 end
 
 ---@param sensor_data logistics_sensor.Data
@@ -354,10 +369,20 @@ function LogisticsSensor.connect(sensor_data, entity)
 
     sensor_data.scan_entity = entity
     sensor_data.scan_interval = scan_controller.interval or scan_frequency.stationary -- unset scan interval -> stationary
+
     sensor_data.config.scan_entity_id = entity.unit_number
 
+    local entity_key = get_entity_key(entity)
+
+    if sensor_data.state.reset_on_connect and not (sensor_data.state.reconnect_key and entity_key == sensor_data.state.reconnect_key) then
+        sensor_data.config.logistic_member_index = nil
+        sensor_data.config.selected = util.copy(NO_TYPE_SELECTED)
+    end
+
+    sensor_data.state.reconnect_key = entity_key
+
     -- update the list of supported logistics points for the entity.
-    -- Not all entities support all possible logistics points (e.g. landing pod outside space age)
+    -- Not all entities support all possible logistics points (e.g. cargo landing pad outside space age)
     LogisticsSensor.update_supported(sensor_data, scan_controller)
 
     LogisticsSensor.load(sensor_data, true)

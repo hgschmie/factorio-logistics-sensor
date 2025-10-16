@@ -33,6 +33,8 @@
 ---@field status defines.entity_status
 ---@field logistics_points string[]
 ---@field supported logistics_sensor.LogisticTypes[]
+---@field reset_on_connect boolean
+---@field reconnect_key string?
 
 ---@class logistics_sensor.Data
 ---@field sensor_entity LuaEntity

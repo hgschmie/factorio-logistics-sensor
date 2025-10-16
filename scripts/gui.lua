@@ -144,7 +144,7 @@ function Gui.getUi(gui)
                                     {
                                         type = 'label',
                                         style = 'label',
-                                        caption = 'ID: ' .. sensor_data.sensor_entity.unit_number,
+                                        caption = { const:locale('id'), sensor_data.sensor_entity.unit_number },
                                     },
                                 },
                             },
@@ -400,7 +400,7 @@ local function update_config_gui_state(gui, sensor_data)
     local status = gui:find_element('status')
     if sensor_data.config.enabled then
         if (sensor_data.scan_entity and sensor_data.scan_entity.valid) then
-            status.caption = { const:locale('reading'), sensor_data.scan_entity.localised_name }
+            status.caption = { const:locale('reading'), sensor_data.scan_entity.localised_name, sensor_data.scan_entity.unit_number }
         else
             status.caption = { const:locale('scanning') }
         end
