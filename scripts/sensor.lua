@@ -16,10 +16,17 @@ local sensor_entities = require('scripts.supported-entities')
 ------------------------------------------------------------------------
 
 ---@type logistics_sensor.LogisticTypes
-local NO_TYPE_SELECTED = {
+local NO_TYPE_SUPPORTED = {
     request = false,
     pickup = false,
     delivery = false,
+}
+
+---@type logistics_sensor.TypeConfig
+local DEFAULT_TYPE_ENABLED = {
+    enabled = false,
+    mode = 'quantity',
+    inverted = false,
 }
 
 ------------------------------------------------------------------------
@@ -28,6 +35,13 @@ local NO_TYPE_SELECTED = {
 ---@field scan_offset number
 ---@field scan_range number
 local LogisticsSensor = {
+    ---@enum logistics_sensor.Type
+    TYPES = {
+        pickup = 'pickup',
+        delivery = 'delivery',
+        request = 'request',
+    },
+
     scan_offset = Framework.settings:startup_setting(const.settings_scan_offset_name),
     scan_range = Framework.settings:startup_setting(const.settings_scan_range_name),
 }
@@ -37,7 +51,7 @@ local LogisticsSensor = {
 ----------------------------------------------------------------------------------------------------
 
 ---@param entity LuaEntity?
----@return logistics_sensor.DataController?
+---@return logistics_sensor.ScanController?
 local function locate_scan_controller(entity)
     if not (entity and entity.valid) then return nil end
     assert(entity)
@@ -66,7 +80,7 @@ local function get_entity_key(entity)
 end
 
 ---@param sensor_data logistics_sensor.Data
----@param scan_controller logistics_sensor.DataController
+---@param scan_controller logistics_sensor.ScanController
 function LogisticsSensor.update_supported(sensor_data, scan_controller)
     if not (sensor_data.scan_entity and sensor_data.scan_entity.valid) then return end
 
@@ -136,9 +150,9 @@ function LogisticsSensor.new(sensor_entity, config)
         config = {
             enabled = true,
             selected = {
-                request = false,
-                pickup = false,
-                delivery = false,
+                request = util.copy(DEFAULT_TYPE_ENABLED),
+                pickup = util.copy(DEFAULT_TYPE_ENABLED),
+                delivery = util.copy(DEFAULT_TYPE_ENABLED),
             },
         },
         state = {
@@ -249,7 +263,7 @@ function LogisticsSensor.find_supported(sensor_data)
         end
     end
 
-    return NO_TYPE_SELECTED, 0
+    return NO_TYPE_SUPPORTED, 0
 end
 
 ---@param sensor_data logistics_sensor.Data
@@ -262,6 +276,29 @@ function LogisticsSensor.get_section(sensor_data)
 
     return assert(control.get_section(1))
 end
+
+---@type table<logistics_sensor.Type, fun(logistic_point: LuaLogisticPoint, sink_func: fun(filter: LogisticFilter), result_func: fun(number): number)>
+local READ_DATA = {
+    pickup = function(logistics_point, sink_func, result_func)
+        for _, item in pairs(logistics_point.targeted_items_pickup) do
+            sink_func { value = { name = item.name, type = 'item', quality = item.quality or 'normal' }, min = result_func(item.count) }
+        end
+    end,
+    delivery = function(logistics_point, sink_func, result_func)
+        for _, item in pairs(logistics_point.targeted_items_deliver) do
+            sink_func { value = { name = item.name, type = 'item', quality = item.quality or 'normal' }, min = result_func(item.count) }
+        end
+    end,
+    request = function(logistics_point, sink_func, result_func)
+        for _, request_section in pairs(logistics_point.sections) do
+            if request_section.active then
+                for _, filter in pairs(request_section.filters) do
+                    sink_func { value = { name = filter.value.name, type = 'item', quality = filter.value.quality or 'normal' }, min = result_func(filter.min) }
+                end
+            end
+        end
+    end,
+}
 
 --- Loads the state of the connected entity into the sensor.
 ---@param sensor_data logistics_sensor.Data
@@ -290,7 +327,9 @@ function LogisticsSensor.load(sensor_data, force)
 
     ---@type fun(filter: LogisticFilter)
     local sink = function(filter)
-        local signal = filter.value --[[@as SignalFilter]]
+        if filter.min == 0 then return end
+
+        local signal = assert(filter.value)
         local key = ('%s:%s:%s'):format(signal.name, signal.type or 'item', signal.quality or 'normal')
         local index = cache[key]
         if not index then
@@ -304,27 +343,21 @@ function LogisticsSensor.load(sensor_data, force)
     if sensor_data.config.logistic_member_index then
         local logistics_point = scan_entity.get_logistic_point(sensor_data.config.logistic_member_index)
         if logistics_point then
-            local supported = LogisticsSensor.find_supported(sensor_data)
+            local supported_types = assert(LogisticsSensor.find_supported(sensor_data))
 
-            if supported.pickup and sensor_data.config.selected.pickup then
-                for _, item in pairs(logistics_point.targeted_items_pickup) do
-                    sink { value = { name = item.name, type = 'item', quality = item.quality or 'normal' }, min = item.count }
-                end
-            end
+            for report_type in pairs(LogisticsSensor.TYPES) do
+                ---@type boolean
+                local supported = supported_types[report_type] or false
+                local selected = assert(sensor_data.config.selected[report_type])
 
-            if supported.delivery and sensor_data.config.selected.delivery then
-                for _, item in pairs(logistics_point.targeted_items_deliver) do
-                    sink { value = { name = item.name, type = 'item', quality = item.quality or 'normal' }, min = item.count }
-                end
-            end
-
-            if supported.request and sensor_data.config.selected.request then
-                for _, request_section in pairs(logistics_point.sections) do
-                    if request_section.active then
-                        for _, filter in pairs(request_section.filters) do
-                            sink { value = { name = filter.value.name, type = 'item', quality = filter.value.quality or 'normal' }, min = filter.min }
-                        end
+                if supported and selected.enabled then
+                    local result_function = function(value)
+                        if selected.mode == 'one' and value > 0 then value = 1 end
+                        if selected.inverted then value = -value end
+                        return value
                     end
+
+                    READ_DATA[report_type](logistics_point, sink, result_function)
                 end
             end
         end
@@ -376,7 +409,9 @@ function LogisticsSensor.connect(sensor_data, entity)
 
     if sensor_data.state.reset_on_connect and not (sensor_data.state.reconnect_key and entity_key == sensor_data.state.reconnect_key) then
         sensor_data.config.logistic_member_index = nil
-        sensor_data.config.selected = util.copy(NO_TYPE_SELECTED)
+        for report_type in pairs(LogisticsSensor.TYPES) do
+            sensor_data.config.selected[report_type].enabled = false
+        end
     end
 
     sensor_data.state.reconnect_key = entity_key

@@ -26,7 +26,7 @@ end
 ------------------------------------------------------------------------
 
 -- generic container
----@type logistics_sensor.DataController
+---@type logistics_sensor.ScanController
 local container_type = {
     interval = scan_frequency.stationary,
     validate = function(entity)
@@ -38,7 +38,7 @@ local container_type = {
     }
 }
 
----@type logistics_sensor.DataController
+---@type logistics_sensor.ScanController
 local cargo_pad_type = {
     interval = scan_frequency.stationary,
     logistics_points = {
@@ -49,16 +49,15 @@ local cargo_pad_type = {
     }
 }
 
----@type logistics_sensor.DataController
+---@type logistics_sensor.ScanController
 local roboport_type = {
     interval = scan_frequency.stationary,
     logistics_points = {
-        [defines.logistic_member_index.roboport_provider] = const.logistics_point_names.provider,
-        [defines.logistic_member_index.roboport_requester] = const.logistics_point_names.robot_requests,
+        [defines.logistic_member_index.roboport_provider] = const.logistics_point_names.repair_packs,
     }
 }
 
----@type logistics_sensor.DataController
+---@type logistics_sensor.ScanController
 local rocket_silo_type = {
     --- only works in space-age
     validate = function()
@@ -72,7 +71,7 @@ local rocket_silo_type = {
     }
 }
 
----@type logistics_sensor.DataController
+---@type logistics_sensor.ScanController
 local space_platform_hub_type = {
     interval = scan_frequency.stationary,
     logistics_points = {
@@ -81,7 +80,7 @@ local space_platform_hub_type = {
     }
 }
 
----@type logistics_sensor.DataController
+---@type logistics_sensor.ScanController
 local car_type = {
     interval = scan_frequency.mobile,
     validate = is_stopped,
@@ -91,7 +90,7 @@ local car_type = {
     }
 }
 
----@type logistics_sensor.DataController
+---@type logistics_sensor.ScanController
 local spidertron_type = {
     interval = scan_frequency.mobile,
     validate = is_stopped,
@@ -103,7 +102,7 @@ local spidertron_type = {
 
 ------------------------------------------------------------------------
 
----@type table<string, logistics_sensor.DataController|table<string, logistics_sensor.DataController>>
+---@type table<string, logistics_sensor.ScanController|table<string, logistics_sensor.ScanController>>
 local supported_entities = {
     -- container-ish
     ['logistic-container'] = util.copy(container_type),
@@ -111,9 +110,7 @@ local supported_entities = {
 
     ['cargo-landing-pad'] = util.copy(cargo_pad_type),
 
-    -- no idea what the provider logistic point in the robo port does
-    -- turn it off, there does not seem to be anything useful here
-    -- ['roboport'] = util.copy(roboport_type),
+    ['roboport'] = util.copy(roboport_type),
 
     ['rocket-silo'] = util.copy(rocket_silo_type),
 
@@ -133,7 +130,7 @@ local blacklisted_entities = table.array_to_dictionary {
 local supported_entity_map = {}
 
 -- normalize map. For any type that has no sub-name, use '*' as a wild card
-for type, map in pairs(supported_entities) do
+for entity_type, map in pairs(supported_entities) do
     local type_map = {}
 
     if map.interval then
@@ -144,7 +141,7 @@ for type, map in pairs(supported_entities) do
         end
     end
 
-    supported_entity_map[type] = type_map
+    supported_entity_map[entity_type] = type_map
 end
 
 ------------------------------------------------------------------------

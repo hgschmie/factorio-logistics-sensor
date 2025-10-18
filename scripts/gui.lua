@@ -32,12 +32,68 @@ local function get_gui_event_definition()
         events = {
             onWindowClosed = Gui.onWindowClosed,
             onSwitchEnabled = Gui.onSwitchEnabled,
-            onToggleRequests = Gui.onToggleRequests,
-            onTogglePickups = Gui.onTogglePickups,
-            onToggleDeliveries = Gui.onToggleDeliveries,
+            onToggleReportSelect = Gui.onToggleReportSelect,
+            onToggleChangeRequestMode = Gui.onToggleChangeRequestMode,
+            onToggleRequestInvert = Gui.onToggleRequestInvert,
             onLogisticPointChanged = Gui.onLogisticPointChanged,
         },
         callback = Gui.guiUpdater,
+    }
+end
+
+---@param gui framework.gui
+---@param report_type logistics_sensor.Type The report type (e.g., 'pickups', 'deliveries', 'requests')
+---@return framework.gui.element_definition[]
+local function get_report_gui(gui, report_type)
+    local report_name = 'report-' .. report_type
+
+    return {
+        {
+            type = 'checkbox',
+            caption = { const:locale(report_name) },
+            name = report_name .. '-select',
+            elem_tags = { report_type = report_type },
+            handler = { [defines.events.on_gui_checked_state_changed] = gui.gui_events.onToggleReportSelect },
+            state = false,
+        },
+        {
+            type = 'flow',
+            direction = 'vertical',
+            children = {
+                {
+                    type = 'radiobutton',
+                    caption = { '', { const:locale('report-quantity') }, ' [img=info]' },
+                    tooltip = { const:locale('report-quantity-description') },
+                    name = report_name .. '-quantity',
+                    elem_tags = {
+                        report_type = report_type,
+                        report_state = 'quantity',
+                    },
+                    handler = { [defines.events.on_gui_checked_state_changed] = gui.gui_events.onToggleChangeRequestMode },
+                    state = false,
+                },
+                {
+                    type = 'radiobutton',
+                    caption = { const:locale('report-one') },
+                    name = report_name .. '-one',
+                    elem_tags = {
+                        report_type = report_type,
+                        report_state = 'one',
+                    },
+                    handler = { [defines.events.on_gui_checked_state_changed] = gui.gui_events.onToggleChangeRequestMode },
+                    state = false,
+                },
+            }
+        },
+        {
+            type = 'checkbox',
+            caption = { '', { const:locale('report-invert') }, ' [img=info]' },
+            tooltip = { const:locale('report-invert-description') },
+            name = report_name .. '-invert',
+            elem_tags = { report_type = report_type },
+            handler = { [defines.events.on_gui_checked_state_changed] = gui.gui_events.onToggleRequestInvert },
+            state = false,
+        },
     }
 end
 
@@ -200,25 +256,17 @@ function Gui.getUi(gui)
                                 items = {},
                             },
                             {
-                                type = 'checkbox',
-                                caption = { const:locale('report-pickups') },
-                                name = 'report-pickups',
-                                handler = { [defines.events.on_gui_checked_state_changed] = gui_events.onTogglePickups },
-                                state = false,
-                            },
-                            {
-                                type = 'checkbox',
-                                caption = { const:locale('report-deliveries') },
-                                name = 'report-deliveries',
-                                handler = { [defines.events.on_gui_checked_state_changed] = gui_events.onToggleDeliveries },
-                                state = false,
-                            },
-                            {
-                                type = 'checkbox',
-                                caption = { const:locale('report-requests') },
-                                name = 'report-requests',
-                                handler = { [defines.events.on_gui_checked_state_changed] = gui_events.onToggleRequests },
-                                state = false,
+                                type = 'table',
+                                column_count = 3,
+                                style_mods = {
+                                    top_margin = -8,         -- pull the table a bit closer to the label above
+                                    horizontal_spacing = 24, -- space the elements in the table out
+                                },
+                                children = table.flatten {
+                                    get_report_gui(gui, Sensor.TYPES.pickup),
+                                    get_report_gui(gui, Sensor.TYPES.delivery),
+                                    get_report_gui(gui, Sensor.TYPES.request),
+                                },
                             },
                             {
                                 type = 'scroll-pane',
@@ -310,29 +358,32 @@ end
 
 ---@param event EventData.on_gui_checked_state_changed
 ---@param gui framework.gui
-function Gui.onToggleRequests(event, gui)
+function Gui.onToggleReportSelect(event, gui)
     local sensor_data = This.SensorController:entity(gui.entity_id)
     if not sensor_data then return end
 
-    sensor_data.config.selected.request = event.element.state
+    local selected = assert(sensor_data.config.selected[event.element.tags.report_type])
+    selected.enabled = event.element.state
 end
 
 ---@param event EventData.on_gui_checked_state_changed
 ---@param gui framework.gui
-function Gui.onTogglePickups(event, gui)
+function Gui.onToggleChangeRequestMode(event, gui)
     local sensor_data = This.SensorController:entity(gui.entity_id)
     if not sensor_data then return end
 
-    sensor_data.config.selected.pickup = event.element.state
+    local selected = assert(sensor_data.config.selected[event.element.tags['report_type']])
+    if event.element.state then selected.mode = assert(event.element.tags.report_state) end
 end
 
 ---@param event EventData.on_gui_checked_state_changed
 ---@param gui framework.gui
-function Gui.onToggleDeliveries(event, gui)
+function Gui.onToggleRequestInvert(event, gui)
     local sensor_data = This.SensorController:entity(gui.entity_id)
     if not sensor_data then return end
 
-    sensor_data.config.selected.delivery = event.element.state
+    local selected = assert(sensor_data.config.selected[event.element.tags.report_type])
+    selected.inverted = event.element.state
 end
 
 ---@param event EventData.on_gui_selection_state_changed
@@ -367,6 +418,33 @@ end
 
 ---@param gui framework.gui
 ---@param sensor_data logistics_sensor.Data
+---@param report_type logistics_sensor.Type The report type (e.g., 'pickups', 'deliveries', 'requests')
+local function update_report_gui(gui, sensor_data, report_type)
+    local report_name = 'report-' .. report_type
+    local selected = assert(sensor_data.config.selected[report_type])
+    local supported = Sensor.find_supported(sensor_data)
+
+    local enabled = (sensor_data.config.logistic_member_index and supported[report_type]) or false
+
+    local report_select = assert(gui:find_element(report_name .. '-select'))
+    report_select.enabled = enabled
+    report_select.state = enabled and selected.enabled or false
+
+    local report_quantity = assert(gui:find_element(report_name .. '-quantity'))
+    report_quantity.enabled = enabled
+    report_quantity.state = (enabled and selected.mode == 'quantity') or false
+
+    local report_one = assert(gui:find_element(report_name .. '-one'))
+    report_one.enabled = enabled
+    report_one.state = (enabled and selected.mode == 'one') or false
+
+    local report_invert = assert(gui:find_element(report_name .. '-invert'))
+    report_invert.enabled = enabled
+    report_invert.state = enabled and selected.inverted or false
+end
+
+---@param gui framework.gui
+---@param sensor_data logistics_sensor.Data
 local function update_config_gui_state(gui, sensor_data)
     local sensor_status = (not sensor_data.config.enabled) and defines.entity_status.disabled -- if not enabled, status is disabled
         or sensor_data.state.status                                                           -- if enabled, the registered state takes precedence if present
@@ -385,17 +463,9 @@ local function update_config_gui_state(gui, sensor_data)
     logistic_point.items = localize_items(sensor_data)
     logistic_point.selected_index = idx
 
-    local report_pickups = gui:find_element('report-pickups')
-    report_pickups.enabled = supported.pickup
-    report_pickups.state = supported.pickup and sensor_data.config.selected.pickup or false
-
-    local report_deliveries = gui:find_element('report-deliveries')
-    report_deliveries.enabled = supported.delivery
-    report_deliveries.state = supported.delivery and sensor_data.config.selected.delivery or false
-
-    local report_requests = gui:find_element('report-requests')
-    report_requests.enabled = supported.request
-    report_requests.state = supported.request and sensor_data.config.selected.request or false
+    update_report_gui(gui, sensor_data, Sensor.TYPES.pickup)
+    update_report_gui(gui, sensor_data, Sensor.TYPES.delivery)
+    update_report_gui(gui, sensor_data, Sensor.TYPES.request)
 
     local status = gui:find_element('status')
     if sensor_data.config.enabled then

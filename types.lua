@@ -11,7 +11,7 @@
 -- sensor.lua
 ----------------------------------------------------------------------------------------------------
 
----@class logistics_sensor.DataController
+---@class logistics_sensor.ScanController
 ---@field interval scan_frequency
 ---@field validate (fun(entity: LuaEntity): boolean)?
 ---@field contribute (fun(data: logistics_sensor.Data, sink: fun(filter: LogisticFilter)))?
@@ -23,11 +23,18 @@
 ---@field pickup boolean
 ---@field delivery boolean
 
+---@alias logistics_sensor.TypeMode 'one'|'quantity'
+
+---@class logistics_sensor.TypeConfig
+---@field enabled boolean
+---@field mode logistics_sensor.TypeMode
+---@field inverted boolean
+
 ---@class logistics_sensor.Config
 ---@field enabled boolean
 ---@field scan_entity_id integer?
 ---@field logistic_member_index defines.logistic_member_index?
----@field selected logistics_sensor.LogisticTypes
+---@field selected table<logistics_sensor.Type, logistics_sensor.TypeConfig>
 
 ---@class logistics_sensor.State
 ---@field status defines.entity_status
@@ -46,8 +53,6 @@
 ---@field scan_time integer?
 ---@field load_time integer?
 
----@class logistics_sensor.Status
-
 ----------------------------------------------------------------------------------------------------
 -- controller.lua
 ----------------------------------------------------------------------------------------------------
@@ -60,5 +65,5 @@
 -- supported_entities.lua
 ----------------------------------------------------------------------------------------------------
 ---@class logistics_sensor.SupportedEntities
----@field supported_entities table<string, logistics_sensor.DataController>
+---@field supported_entities table<string, logistics_sensor.ScanController>
 ---@field blacklist table<string, string>
