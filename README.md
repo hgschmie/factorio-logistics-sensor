@@ -1,6 +1,6 @@
 # Logistics Sensor
 
-Reports logistic requests for entities that participate in the logistics network.
+Reports logistic requests for entities that participate in the logistics network to the circuit network.
 
 * stationary entities: requester, provider, storage and buffer chests (and various mods that re-skin the chests such as [Warehousing](https://mods.factorio.com/mod/Warehousing), cargo landing pad, roboports, rocket silo, space platform hub
 * mobile entities: cars, spidertron

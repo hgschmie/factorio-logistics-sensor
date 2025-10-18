@@ -1,8 +1,8 @@
 {
   "name": "logistics-sensor",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "title": "Logistics Sensor",
-  "description": "Provides logistics information from chests",
+  "description": "Reports logistic requests for entities that participate in the logistics network.",
   "author": "hgschmie",
   "contact": "https://github.com/hgschmie/factorio-logistics-sensor/issues/",
   "homepage": "https://github.com/hgschmie/factorio-logistics-sensor",
