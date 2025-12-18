@@ -120,7 +120,7 @@ Constants.logistics_point = {
     repair_packs = { Constants:locale('logistics-repair-packs') },
     rocket_inventory = { Constants:locale('logistics-rocket-inventory') },
     request_for_construction = { Constants:locale('logistics-request-for-construction') },
-    space_platform_deliveries = {Constants:locale('logistics-space-platform-deliveries')},
+    space_platform_deliveries = { Constants:locale('logistics-space-platform-deliveries') },
 }
 
 Constants.logistics_point_names = {}
