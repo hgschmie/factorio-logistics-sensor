@@ -309,7 +309,7 @@ end
 function Gui.render_preview(gui, sensor_data)
     if not sensor_data then return end
 
-    local signal_view = gui:find_element('signal-view')
+    local signal_view = gui:findElement('signal-view')
     assert(signal_view)
 
     signal_view.clear()
@@ -428,19 +428,19 @@ local function update_report_gui(gui, sensor_data, report_type)
 
     local enabled = (sensor_data.config.logistic_member_index and supported[report_type]) or false
 
-    local report_select = assert(gui:find_element(report_name .. '-select'))
+    local report_select = assert(gui:findElement(report_name .. '-select'))
     report_select.enabled = enabled
     report_select.state = enabled and selected.enabled or false
 
-    local report_quantity = assert(gui:find_element(report_name .. '-quantity'))
+    local report_quantity = assert(gui:findElement(report_name .. '-quantity'))
     report_quantity.enabled = enabled
     report_quantity.state = (enabled and selected.mode == 'quantity') or false
 
-    local report_one = assert(gui:find_element(report_name .. '-one'))
+    local report_one = assert(gui:findElement(report_name .. '-one'))
     report_one.enabled = enabled
     report_one.state = (enabled and selected.mode == 'one') or false
 
-    local report_invert = assert(gui:find_element(report_name .. '-invert'))
+    local report_invert = assert(gui:findElement(report_name .. '-invert'))
     report_invert.enabled = enabled
     report_invert.state = enabled and selected.inverted or false
 end
@@ -452,15 +452,15 @@ local function update_config_gui_state(gui, sensor_data)
         or sensor_data.state.status                                                           -- if enabled, the registered state takes precedence if present
         or defines.entity_status.working                                                      -- otherwise, it is working
 
-    local entity_lamp = gui:find_element('entity-lamp')
+    local entity_lamp = gui:findElement('entity-lamp')
     entity_lamp.sprite = tools.STATUS_SPRITES[sensor_status]
 
-    local entity_status = gui:find_element('entity-status')
+    local entity_status = gui:findElement('entity-status')
     entity_status.caption = { tools.STATUS_NAMES[sensor_status] }
 
     local supported, idx = Sensor.find_supported(sensor_data)
 
-    local logistic_point = assert(gui:find_element('logistic-point'))
+    local logistic_point = assert(gui:findElement('logistic-point'))
     logistic_point.enabled = #sensor_data.state.logistics_points > 0
     logistic_point.items = localize_items(sensor_data)
     logistic_point.selected_index = idx
@@ -469,7 +469,7 @@ local function update_config_gui_state(gui, sensor_data)
     update_report_gui(gui, sensor_data, Sensor.TYPES.delivery)
     update_report_gui(gui, sensor_data, Sensor.TYPES.request)
 
-    local status = gui:find_element('status')
+    local status = gui:findElement('status')
     if sensor_data.config.enabled then
         if (sensor_data.scan_entity and sensor_data.scan_entity.valid) then
             status.caption = { const:locale('reading'), sensor_data.scan_entity.localised_name, sensor_data.scan_entity.unit_number }
@@ -481,7 +481,7 @@ local function update_config_gui_state(gui, sensor_data)
     end
 
     local enabled = sensor_data.config.enabled
-    local on_off = gui:find_element('on-off')
+    local on_off = gui:findElement('on-off')
     on_off.switch_state = values_on_off[enabled]
 end
 
@@ -490,12 +490,12 @@ end
 local function update_gui_state(gui, sensor_data)
     Gui.render_preview(gui, sensor_data)
 
-    local connections = gui:find_element('connections')
+    local connections = gui:findElement('connections')
     connections.caption = { 'gui-control-behavior.not-connected' }
     for _, color in pairs { 'red', 'green' } do
         local wire_connector = sensor_data.sensor_entity.get_wire_connector(defines.wire_connector_id['circuit_' .. color], false)
 
-        local wire_connection = gui:find_element('connection-' .. color)
+        local wire_connection = gui:findElement('connection-' .. color)
         if wire_connector and wire_connector.connection_count > 0 then
             connections.caption = { 'gui-control-behavior.connected-to-network' }
             wire_connection.visible = true
