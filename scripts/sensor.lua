@@ -211,7 +211,7 @@ end
 
 ---@param sensor_data logistics_sensor.Data
 ---@param force boolean?
----@return boolean scanned True if scan happened
+---@return boolean scanned True if work was done during the scan. Only returns false if no work happened.
 function LogisticsSensor.scan(sensor_data, force)
     if sensor_data.config.enabled then
         local interval = sensor_data.scan_interval or Framework.settings:runtime_setting(const.settings_find_entity_interval_name)
@@ -401,7 +401,7 @@ function LogisticsSensor.connect(sensor_data, entity)
     if not scan_controller then return false end
 
     sensor_data.scan_entity = entity
-    sensor_data.scan_interval = scan_controller.interval or scan_frequency.stationary -- unset scan interval -> stationary
+    sensor_data.scan_interval = scan_controller.interval or const.scan_frequency.stationary -- unset scan interval -> stationary
 
     sensor_data.config.scan_entity_id = entity.unit_number
 
@@ -468,7 +468,7 @@ end
 ----------------------------------------------------------------------------------------------------
 
 ---@param sensor_data logistics_sensor.Data
----@return boolean if entity was either scanned or loaded
+---@return boolean did_work true if entity was either scanned or loaded
 function LogisticsSensor.tick(sensor_data)
     if not (sensor_data.sensor_entity and sensor_data.sensor_entity.valid) then
         sensor_data.config.enabled = false

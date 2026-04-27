@@ -28,7 +28,7 @@ end
 -- generic container
 ---@type logistics_sensor.ScanController
 local container_type = {
-    interval = scan_frequency.stationary,
+    interval = const.scan_frequency.stationary,
     validate = function(entity)
         return entity.prototype.logistic_mode and entity.prototype.logistic_mode ~= 'none' or false
     end,
@@ -40,7 +40,7 @@ local container_type = {
 
 ---@type logistics_sensor.ScanController
 local cargo_pad_type = {
-    interval = scan_frequency.stationary,
+    interval = const.scan_frequency.stationary,
     logistics_points = {
         -- https://forums.factorio.com/viewtopic.php?t=131341
         [defines.logistic_member_index.space_platform_hub_requester] = const.logistics_point_names.space_platform_deliveries,
@@ -51,7 +51,7 @@ local cargo_pad_type = {
 
 ---@type logistics_sensor.ScanController
 local roboport_type = {
-    interval = scan_frequency.stationary,
+    interval = const.scan_frequency.stationary,
     logistics_points = {
         [defines.logistic_member_index.roboport_provider] = const.logistics_point_names.repair_packs,
     }
@@ -63,7 +63,7 @@ local rocket_silo_type = {
     validate = function()
         return has_space_age
     end,
-    interval = scan_frequency.stationary,
+    interval = const.scan_frequency.stationary,
     logistics_points = {
         [defines.logistic_member_index.rocket_silo_provider] = const.logistics_point_names.rocket_inventory,
         [defines.logistic_member_index.rocket_silo_requester] = const.logistics_point_names.main,
@@ -73,7 +73,7 @@ local rocket_silo_type = {
 
 ---@type logistics_sensor.ScanController
 local space_platform_hub_type = {
-    interval = scan_frequency.stationary,
+    interval = const.scan_frequency.stationary,
     logistics_points = {
         [defines.logistic_member_index.space_platform_hub_requester] = const.logistics_point_names.request_for_construction,
         [defines.logistic_member_index.space_platform_hub_provider] = const.logistics_point_names.provider,
@@ -82,7 +82,7 @@ local space_platform_hub_type = {
 
 ---@type logistics_sensor.ScanController
 local car_type = {
-    interval = scan_frequency.mobile,
+    interval = const.scan_frequency.mobile,
     validate = is_stopped,
     logistics_points = {
         [defines.logistic_member_index.car_requester] = const.logistics_point_names.vehicle_logistics,
@@ -92,7 +92,7 @@ local car_type = {
 
 ---@type logistics_sensor.ScanController
 local spidertron_type = {
-    interval = scan_frequency.mobile,
+    interval = const.scan_frequency.mobile,
     validate = is_stopped,
     logistics_points = {
         [defines.logistic_member_index.spidertron_requester] = const.logistics_point_names.vehicle_logistics,

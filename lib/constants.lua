@@ -8,13 +8,6 @@
 -- globals
 --------------------------------------------------------------------------------
 
----@enum scan_frequency
-scan_frequency = {
-    stationary = 300, -- scan every five seconds
-    mobile = 30,      -- scan every 1/2 of a second
-    empty = 120       -- scan every 2 seconds
-}
-
 local Constants = {}
 
 --------------------------------------------------------------------------------
@@ -127,6 +120,14 @@ Constants.logistics_point_names = {}
 for key, _ in pairs(Constants.logistics_point) do
     Constants.logistics_point_names[key] = key
 end
+
+---@enum scan_frequency
+Constants.scan_frequency = {
+    stationary = 300, -- scan every five seconds
+    mobile = 30,      -- scan every 1/2 of a second
+    empty = 120       -- scan every 2 seconds
+}
+
 
 --------------------------------------------------------------------------------
 -- settings
