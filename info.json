@@ -1,6 +1,6 @@
 {
   "name": "logistics-sensor",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "title": "Logistics Sensor",
   "description": "Reports logistic requests for entities that participate in the logistics network.",
   "author": "hgschmie",
