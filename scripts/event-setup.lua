@@ -30,7 +30,7 @@ local function onEntityCreated(event)
     local player_index = event.player_index
     local tags = event.tags
 
-    local entity_ghost = Framework.ghost_manager:findGhostForEntity(entity)
+    local entity_ghost = Framework.Ghost:findGhostForEntity(entity)
     if entity_ghost then
         player_index = player_index or entity_ghost.player_index
         tags = tags or entity_ghost.tags or {}
@@ -169,12 +169,12 @@ local function register_events()
     -- Manage blueprint configuration setting
     Framework.blueprint:registerCallbackForNames(const.logistics_sensor_name, This.SensorController.serialize_config)
 
-    Framework.ghost_manager:registerForName(const.logistics_sensor_name)
+    Framework.Ghost:registerForName { names = const.logistics_sensor_name }
 
     -- manage tombstones for undo/redo and dead entities
-    Framework.tombstone:registerCallback(const.logistics_sensor_name, {
+    Framework.Tombstone:registerCallback(const.logistics_sensor_name, {
         create_tombstone = This.SensorController.serialize_config,
-        apply_tombstone = Framework.ghost_manager.mapTombstoneToGhostTags,
+        apply_tombstone = Framework.Ghost.mapTombstoneToGhostTags,
     })
 
     -- Entity settings pasting

@@ -1,4 +1,4 @@
-require('lib.init')
+This, Framework = require('lib.init')()
 
 local const = require('lib.constants')
 
@@ -47,4 +47,5 @@ data:extend {
 
 --------------------------------------------------------------------------------
 
+---@diagnostic disable-next-line: undefined-field
 Framework.post_settings_stage()
