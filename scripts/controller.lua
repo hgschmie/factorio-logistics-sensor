@@ -28,12 +28,6 @@ end
 -- attribute getters/setters
 ------------------------------------------------------------------------
 
---- Returns the registered total count.
----@return integer count The total count of logistics sensors
-function LogisticsSensorController:totalCount()
-    return storage.sensor_data.count
-end
-
 --- Returns data for all logistics sensors.
 ---@return logistics_sensor.Data[] entities
 function LogisticsSensorController:entities()
@@ -56,12 +50,6 @@ function LogisticsSensorController:setEntity(entity_id, sensor_data)
     if (sensor_data) then assert(Sensor.validate(sensor_data, entity_id)) end
 
     storage.sensor_data.sensors[entity_id] = sensor_data
-    storage.sensor_data.count = storage.sensor_data.count + ((sensor_data and 1) or -1)
-
-    if storage.sensor_data.count < 0 then
-        storage.sensor_data.count = table_size(storage.sensor_data.sensors)
-        Framework.logger:logf('Logistics Sensor count got negative (bug), count is now: %d', storage.sensor_data.count)
-    end
 end
 
 ------------------------------------------------------------------------
@@ -122,6 +110,13 @@ function LogisticsSensorController.serialize_config(entity)
     return {
         [const.config_tag_name] = sensor_data.config,
     }
+end
+
+---@param tags Tags?
+function LogisticsSensorController.deserialize(tags)
+    if not (tags and tags[const.config_tag_name]) then return nil end
+
+    return tags[const.config_tag_name]
 end
 
 ----------------------------------------------------------------------------------------------------
