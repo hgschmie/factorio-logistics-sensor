@@ -15,29 +15,13 @@ local Constants = {}
 --------------------------------------------------------------------------------
 
 Constants.prefix = 'hps__ls-'
+Constants.log_prefix = 'LS'
 Constants.name = 'logistics-sensor'
 Constants.root = '__logistics-sensor__'
 Constants.gfx_location = Constants.root .. '/graphics/'
 Constants.order = 'c[combinators]-d[logistics-sensor]'
 Constants.config_tag_name = 'ls_config'
 
---------------------------------------------------------------------------------
--- Framework initializer
---------------------------------------------------------------------------------
-
----@return FrameworkConfig config
-function Constants.framework_init()
-    return {
-        -- prefix is the internal mod prefix
-        prefix = Constants.prefix,
-        -- name is a human readable name
-        name = Constants.name,
-        -- The filesystem root.
-        root = Constants.root,
-    }
-end
-
---------------------------------------------------------------------------------
 -- Path and name helpers
 --------------------------------------------------------------------------------
 

@@ -12,6 +12,8 @@ local Direction = require('stdlib.area.direction')
 local Position = require('stdlib.area.position')
 local table = require('stdlib.utils.table')
 
+local DEBUG_MODE = Framework.settings:get_debug_level() >= 1
+
 ---@type logistics_sensor.SupportedEntities
 local sensor_entities = require('scripts.supported-entities')
 
@@ -227,7 +229,7 @@ function LogisticsSensor.scan(sensor_data, force)
         -- already exists, use that
         sensor_data.scan_area = (not force) and sensor_data.scan_area or LogisticsSensor.create_scan_area(sensor_data)
 
-        if Framework.settings:startup_setting('debug_mode') then
+        if DEBUG_MODE then
             rendering.draw_rectangle {
                 color = { r = 0.5, g = 0.5, b = 1 },
                 surface = sensor_data.sensor_entity.surface,
@@ -370,7 +372,7 @@ function LogisticsSensor.load(sensor_data, force)
         scan_controller.contribute(sensor_data, sink)
     end
 
-    if Framework.settings:startup_setting('debug_mode') then
+    if DEBUG_MODE then
         rendering.draw_rectangle {
             color = { r = 1, g = 1, b = 0.3 },
             surface = sensor_data.sensor_entity.surface,
@@ -424,7 +426,7 @@ function LogisticsSensor.connect(sensor_data, entity)
 
     LogisticsSensor.load(sensor_data, true)
 
-    if Framework.settings:startup_setting('debug_mode') then
+    if DEBUG_MODE then
         rendering.draw_rectangle {
             color = { r = 0.3, g = 1, b = 0.3 },
             surface = sensor_data.sensor_entity.surface,
@@ -454,7 +456,7 @@ function LogisticsSensor.disconnect(sensor_data)
     local section = LogisticsSensor.get_section(sensor_data)
     section.filters = {}
 
-    if Framework.settings:startup_setting('debug_mode') then
+    if DEBUG_MODE then
         rendering.draw_rectangle {
             color = { r = 1, g = 0.3, b = 0.3 },
             surface = sensor_data.sensor_entity.surface,
