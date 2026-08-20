@@ -40,6 +40,9 @@ Controls the depth of the scan area. The default is 1.5 tiles.
 
 I am not a graphics person. Best I can do is recoloring constant combinators. If you are as bored as I am and know how to use Blender well, I would be grateful for graphics contributions.
 
-## Legal
+## Legal & Copyright
 
-(C) 2025 Henning Schmiedehausen (hgschmie). Released under the MIT License.
+The code was partially written and reviewed by AI coding agents. If you are fundamentally opposed to using AI tools to develop software and improve software quality, you are free to not install it.
+
+--------------------------------------------------
+Copyright (C) 2025-2026 Henning Schmiedehausen (@hgschmie), licensed under the MIT license.
