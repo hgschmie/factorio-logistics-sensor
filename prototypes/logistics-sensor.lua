@@ -15,7 +15,7 @@ local item_prototype = {
     order = const.order,
 }
 
----@type data.ItemPrototype
+---@type ItemPrototype
 local ls_item = table.merge(util.copy(data.raw.item['constant-combinator']), item_prototype)
 
 ------------------------------------------------------------------------
@@ -54,7 +54,7 @@ local entity_prototype = {
     minable = { mining_time = 0.1, result = const.logistics_sensor_name },
 }
 
----@type data.ConstantCombinatorPrototype
+---@type ConstantCombinatorPrototype
 local ls_entity = table.merge(util.copy(data.raw['constant-combinator']['constant-combinator']), entity_prototype)
 
 data:extend { ls_item, ls_entity }
