@@ -560,6 +560,9 @@ function Gui.onGuiOpened(event)
         return
     end
 
+    local scan_controller = Sensor.locateScanController(sensor_data.scan_entity)
+    Sensor.updateSupported(sensor_data, scan_controller)
+
     ---@class logistics_sensor.GuiContext
     ---@field last_config logistics_sensor.Config?
     ---@field last_state logistics_sensor.State?

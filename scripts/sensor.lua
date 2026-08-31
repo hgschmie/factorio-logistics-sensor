@@ -56,7 +56,7 @@ local LogisticsSensor = {
 
 ---@param entity LuaEntity?
 ---@return logistics_sensor.ScanController?
-local function locate_scan_controller(entity)
+function LogisticsSensor.locateScanController(entity)
     if not (entity and entity.valid) then return nil end
     assert(entity)
 
@@ -85,7 +85,7 @@ end
 
 ---@param sensor_data logistics_sensor.Data
 ---@param scan_controller logistics_sensor.ScanController
-function LogisticsSensor.update_supported(sensor_data, scan_controller)
+function LogisticsSensor.updateSupported(sensor_data, scan_controller)
     if not (sensor_data.scan_entity and sensor_data.scan_entity.valid) then return end
 
     -- turn everything off first
@@ -320,7 +320,7 @@ function LogisticsSensor.load(sensor_data, force)
     local scan_entity = sensor_data.scan_entity
     if not (scan_entity and scan_entity.valid) then return false end
 
-    local scan_controller = locate_scan_controller(scan_entity)
+    local scan_controller = LogisticsSensor.locateScanController(scan_entity)
     if not scan_controller then return false end
 
     ---@type table<string, number>
@@ -401,7 +401,7 @@ function LogisticsSensor.connect(sensor_data, entity)
     -- reconnect to the same entity
     if sensor_data.scan_entity and sensor_data.scan_entity.valid and sensor_data.scan_entity.unit_number == entity.unit_number then return true end
 
-    local scan_controller = locate_scan_controller(entity)
+    local scan_controller = LogisticsSensor.locateScanController(entity)
     if not scan_controller then return false end
 
     sensor_data.scan_entity = entity
@@ -422,7 +422,7 @@ function LogisticsSensor.connect(sensor_data, entity)
 
     -- update the list of supported logistics points for the entity.
     -- Not all entities support all possible logistics points (e.g. cargo landing pad outside space age)
-    LogisticsSensor.update_supported(sensor_data, scan_controller)
+    LogisticsSensor.updateSupported(sensor_data, scan_controller)
 
     LogisticsSensor.load(sensor_data, true)
 
