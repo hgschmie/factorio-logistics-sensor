@@ -55,20 +55,20 @@ local LogisticsSensor = {
 ----------------------------------------------------------------------------------------------------
 
 ---@param entity LuaEntity?
----@return logistics_sensor.ScanController?
-function LogisticsSensor.locateScanController(entity)
+---@return logistics_sensor.ScanTemplate?
+function LogisticsSensor.locateScanTemplate(entity)
     if not (entity and entity.valid) then return nil end
     assert(entity)
 
-    local scan_controller = sensor_entities.supported_entities[entity.type] and
+    local scan_template = sensor_entities.supported_entities[entity.type] and
         (sensor_entities.supported_entities[entity.type][entity.name] or sensor_entities.supported_entities[entity.type]['*'])
 
-    if not scan_controller then return nil end
+    if not scan_template then return nil end
 
     -- if there is a validate function, it must pass
-    if scan_controller.validate and not scan_controller.validate(entity) then return nil end
+    if scan_template.validate and not scan_template.validate(entity) then return nil end
 
-    return scan_controller
+    return scan_template
 end
 
 --------------------------------------------------------------------------------
@@ -84,8 +84,10 @@ local function get_entity_key(entity)
 end
 
 ---@param sensor_data logistics_sensor.Data
----@param scan_controller logistics_sensor.ScanController
-function LogisticsSensor.updateSupported(sensor_data, scan_controller)
+---@param scan_template logistics_sensor.ScanTemplate?
+function LogisticsSensor.updateSupported(sensor_data, scan_template)
+    if not scan_template then return end
+
     if not (sensor_data.scan_entity and sensor_data.scan_entity.valid) then return end
 
     -- turn everything off first
@@ -98,7 +100,7 @@ function LogisticsSensor.updateSupported(sensor_data, scan_controller)
     for _, logistics_point in pairs(logistics_points) do
         local logistic_member_index = logistics_point.logistic_member_index
 
-        if scan_controller.logistics_points[logistic_member_index] then
+        if scan_template.logistics_points[logistic_member_index] then
             -- select the very first index as default
             if not new_logistic_member_index then
                 new_logistic_member_index = logistic_member_index
@@ -108,7 +110,7 @@ function LogisticsSensor.updateSupported(sensor_data, scan_controller)
                 new_logistic_member_index = logistic_member_index
             end
 
-            table.insert(sensor_data.state.logistics_points, scan_controller.logistics_points[logistic_member_index])
+            table.insert(sensor_data.state.logistics_points, scan_template.logistics_points[logistic_member_index])
 
             local supported = util.copy(const.supported_logistic_modes[logistics_point.mode])
             supported.logistic_member_index = logistic_member_index
@@ -320,8 +322,8 @@ function LogisticsSensor.load(sensor_data, force)
     local scan_entity = sensor_data.scan_entity
     if not (scan_entity and scan_entity.valid) then return false end
 
-    local scan_controller = LogisticsSensor.locateScanController(scan_entity)
-    if not scan_controller then return false end
+    local scan_template = LogisticsSensor.locateScanTemplate(scan_entity)
+    if not scan_template then return false end
 
     ---@type table<string, number>
     local cache = {}
@@ -368,8 +370,8 @@ function LogisticsSensor.load(sensor_data, force)
     end
 
     -- add custom signals
-    if scan_controller.contribute then
-        scan_controller.contribute(sensor_data, sink)
+    if scan_template.contribute then
+        scan_template.contribute(sensor_data, sink)
     end
 
     if DEBUG_MODE then
@@ -401,11 +403,11 @@ function LogisticsSensor.connect(sensor_data, entity)
     -- reconnect to the same entity
     if sensor_data.scan_entity and sensor_data.scan_entity.valid and sensor_data.scan_entity.unit_number == entity.unit_number then return true end
 
-    local scan_controller = LogisticsSensor.locateScanController(entity)
-    if not scan_controller then return false end
+    local scan_template = LogisticsSensor.locateScanTemplate(entity)
+    if not scan_template then return false end
 
     sensor_data.scan_entity = entity
-    sensor_data.scan_interval = scan_controller.interval or const.scan_frequency.stationary -- unset scan interval -> stationary
+    sensor_data.scan_interval = scan_template.interval or const.scan_frequency.stationary -- unset scan interval -> stationary
 
     sensor_data.config.scan_entity_id = entity.unit_number
 
@@ -422,7 +424,7 @@ function LogisticsSensor.connect(sensor_data, entity)
 
     -- update the list of supported logistics points for the entity.
     -- Not all entities support all possible logistics points (e.g. cargo landing pad outside space age)
-    LogisticsSensor.updateSupported(sensor_data, scan_controller)
+    LogisticsSensor.updateSupported(sensor_data, scan_template)
 
     LogisticsSensor.load(sensor_data, true)
 

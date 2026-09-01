@@ -11,7 +11,7 @@
 -- sensor.lua
 ----------------------------------------------------------------------------------------------------
 
----@class logistics_sensor.ScanController
+---@class logistics_sensor.ScanTemplate
 ---@field interval scan_frequency
 ---@field validate (fun(entity: LuaEntity): boolean)?
 ---@field contribute (fun(data: logistics_sensor.Data, sink: fun(filter: LogisticFilter)))?
@@ -65,5 +65,5 @@
 -- supported_entities.lua
 ----------------------------------------------------------------------------------------------------
 ---@class logistics_sensor.SupportedEntities
----@field supported_entities table<string, logistics_sensor.ScanController>
+---@field supported_entities table<string, logistics_sensor.ScanTemplate>
 ---@field blacklist table<string, string>

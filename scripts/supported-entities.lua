@@ -26,7 +26,7 @@ end
 ------------------------------------------------------------------------
 
 -- generic container
----@type logistics_sensor.ScanController
+---@type logistics_sensor.ScanTemplate
 local container_type = {
     interval = const.scan_frequency.stationary,
     validate = function(entity)
@@ -38,7 +38,7 @@ local container_type = {
     }
 }
 
----@type logistics_sensor.ScanController
+---@type logistics_sensor.ScanTemplate
 local cargo_pad_type = {
     interval = const.scan_frequency.stationary,
     logistics_points = {
@@ -49,7 +49,7 @@ local cargo_pad_type = {
     }
 }
 
----@type logistics_sensor.ScanController
+---@type logistics_sensor.ScanTemplate
 local roboport_type = {
     interval = const.scan_frequency.stationary,
     logistics_points = {
@@ -57,7 +57,7 @@ local roboport_type = {
     }
 }
 
----@type logistics_sensor.ScanController
+---@type logistics_sensor.ScanTemplate
 local rocket_silo_type = {
     --- only works in space-age
     validate = function()
@@ -71,7 +71,7 @@ local rocket_silo_type = {
     }
 }
 
----@type logistics_sensor.ScanController
+---@type logistics_sensor.ScanTemplate
 local space_platform_hub_type = {
     interval = const.scan_frequency.stationary,
     logistics_points = {
@@ -80,7 +80,7 @@ local space_platform_hub_type = {
     }
 }
 
----@type logistics_sensor.ScanController
+---@type logistics_sensor.ScanTemplate
 local car_type = {
     interval = const.scan_frequency.mobile,
     validate = is_stopped,
@@ -90,7 +90,7 @@ local car_type = {
     }
 }
 
----@type logistics_sensor.ScanController
+---@type logistics_sensor.ScanTemplate
 local spidertron_type = {
     interval = const.scan_frequency.mobile,
     validate = is_stopped,
@@ -102,7 +102,7 @@ local spidertron_type = {
 
 ------------------------------------------------------------------------
 
----@type table<string, logistics_sensor.ScanController|table<string, logistics_sensor.ScanController>>
+---@type table<string, logistics_sensor.ScanTemplate|table<string, logistics_sensor.ScanTemplate>>
 local supported_entities = {
     -- container-ish
     ['logistic-container'] = util.copy(container_type),
