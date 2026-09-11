@@ -16,14 +16,6 @@ local LogisticsSensorController = {}
 -- init setup
 ------------------------------------------------------------------------
 
---- Setup the global logistics sensor data structure.
-function LogisticsSensorController:init()
-    storage.sensor_data = storage.sensor_data or {
-        sensors = {},
-        count = 0,
-    } --[[@as logistics_sensor.Storage ]]
-end
-
 ------------------------------------------------------------------------
 -- attribute getters/setters
 ------------------------------------------------------------------------
@@ -31,25 +23,27 @@ end
 --- Returns data for all logistics sensors.
 ---@return logistics_sensor.Data[] entities
 function LogisticsSensorController:entities()
-    return storage.sensor_data.sensors
+    return This:storage().sensors
 end
 
 --- Returns data for a given logistics sensor
 ---@param entity_id integer main unit number (== entity id)
 ---@return logistics_sensor.Data? entity
 function LogisticsSensorController:entity(entity_id)
-    return storage.sensor_data.sensors[entity_id]
+    return This:storage().sensors[entity_id]
 end
 
 --- Sets or clears a logistics sensor entity
 ---@param entity_id integer The unit_number of the primary
 ---@param sensor_data logistics_sensor.Data?
 function LogisticsSensorController:setEntity(entity_id, sensor_data)
-    assert((sensor_data ~= nil and storage.sensor_data.sensors[entity_id] == nil) or sensor_data == nil)
+    local sensors = self:entities()
+
+    assert((sensor_data ~= nil and sensors[entity_id] == nil) or sensor_data == nil)
 
     if (sensor_data) then assert(Sensor.validate(sensor_data, entity_id)) end
 
-    storage.sensor_data.sensors[entity_id] = sensor_data
+    sensors[entity_id] = sensor_data
 end
 
 ------------------------------------------------------------------------

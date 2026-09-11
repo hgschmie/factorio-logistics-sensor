@@ -96,7 +96,7 @@ end
 --------------------------------------------------------------------------------
 
 local function on_configuration_changed()
-    This.SensorController:init()
+    This:init()
 
     -- enable logistics sensor if circuit network is researched.
     for _, force in pairs(game.forces) do
@@ -193,7 +193,7 @@ end
 --------------------------------------------------------------------------------
 
 local function on_init()
-    This.SensorController:init()
+    This:init()
     register_events()
 end
 
