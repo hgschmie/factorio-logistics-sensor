@@ -3,6 +3,7 @@
 ------------------------------------------------------------------------
 
 local util = require('util')
+local meld = require('meld')
 local table = require('stdlib.utils.table')
 
 local const = require('lib.constants')
@@ -16,7 +17,7 @@ local item_prototype = {
 }
 
 ---@type ItemPrototype
-local ls_item = table.merge(util.copy(data.raw.item['constant-combinator']), item_prototype)
+local ls_item = meld.meld(util.copy(data.raw.item['constant-combinator']), item_prototype)
 
 ------------------------------------------------------------------------
 
@@ -27,34 +28,106 @@ local entity_prototype = {
     order = const.order,
 
     -- ConstantCombinatorPrototype
----@diagnostic disable-next-line: undefined-global
-    sprites = make_4way_animation_from_spritesheet {
+    ---@diagnostic disable-next-line: undefined-global
+    sprites = meld.overwrite(make_4way_animation_from_spritesheet {
         layers =
         {
             {
-                scale = 0.5,
                 filename = const:png('entity/logistics-sensor'),
                 width = 114,
                 height = 102,
-                shift = util.by_pixel(0, 5)
+                shift = util.by_pixel_hr(0.0, -15.0),
+                scale = 0.5,
             },
             {
+                filename = const:png('entity/logistics-sensor-shadow'),
+                width = 116,
+                height = 74,
+                shift = util.by_pixel_hr(25.0, 4.0),
                 scale = 0.5,
-                filename = '__base__/graphics/entity/combinator/constant-combinator-shadow.png',
-                width = 98,
-                height = 66,
-                shift = util.by_pixel(8.5, 5.5),
-                draw_as_shadow = true
+                draw_as_shadow = true,
             }
+        }
+    }),
+    circuit_wire_connection_points = meld.overwrite {
+        {
+            wire = {
+                red = util.by_pixel_hr(-23, -57),
+                green = util.by_pixel_hr(23, -57),
+            },
+            shadow = {
+                red = util.by_pixel_hr(60, -16),
+                green = util.by_pixel_hr(72, -10),
+            }
+        },
+        {
+            wire = {
+                red = util.by_pixel_hr(23, -57),
+                green = util.by_pixel_hr(23, -12),
+            },
+            shadow = {
+                red = util.by_pixel_hr(75, -7),
+                green = util.by_pixel_hr(75, 32),
+            }
+        },
+        {
+            wire = {
+                red = util.by_pixel_hr(23, -12),
+                green = util.by_pixel_hr(-23, -12),
+            },
+            shadow = {
+                red = util.by_pixel_hr(73, 35),
+                green = util.by_pixel_hr(63, 32),
+            }
+        },
+        {
+            wire = {
+                red = util.by_pixel_hr(-23, -12),
+                green = util.by_pixel_hr(-23, -57),
+            },
+            shadow = {
+                red = util.by_pixel_hr(0, -2),
+                green = util.by_pixel_hr(0, -36),
+            }
+        }
+    },
+    activity_led_sprites = meld.overwrite {
+        north = util.draw_as_glow {
+            scale = 0.5,
+            filename = const:png('misc/red-activity-led'),
+            width = 14,
+            height = 14,
+            shift = util.by_pixel_hr(17, -8)
+        },
+        east = util.draw_as_glow {
+            scale = 0.5,
+            filename = const:png('misc/red-activity-led'),
+            width = 14,
+            height = 14,
+            shift = util.by_pixel_hr(-14, -2)
+        },
+        south = util.draw_as_glow {
+            scale = 0.5,
+            filename = const:png('misc/red-activity-led'),
+            width = 14,
+            height = 14,
+            shift = util.by_pixel_hr(-19, -36)
+        },
+        west = util.draw_as_glow {
+            scale = 0.5,
+            filename = const:png('misc/red-activity-led'),
+            width = 14,
+            height = 14,
+            shift = util.by_pixel_hr(12, -40)
         }
     },
 
     -- EntityPrototype
     icon = const:png('item/logistics-sensor'),
-    minable = { mining_time = 0.1, result = const.logistics_sensor_name },
+    minable = meld.overwrite { mining_time = 0.1, result = const.logistics_sensor_name },
 }
 
 ---@type ConstantCombinatorPrototype
-local ls_entity = table.merge(util.copy(data.raw['constant-combinator']['constant-combinator']), entity_prototype)
+local ls_entity = meld.meld(util.copy(data.raw['constant-combinator']['constant-combinator']), entity_prototype)
 
 data:extend { ls_item, ls_entity }
